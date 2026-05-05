@@ -173,11 +173,19 @@ function createMcpServer() {
   return server;
 }
 
-// ── SSE Transport ───────────────────────────────────────────────────────────
+// ── SSE + Streamable HTTP Transport ─────────────────────────────────────────
 
 const transports = {};
 
 app.get("/sse", async (req, res) => {
+  const mcpServer = createMcpServer();
+  const transport = new SSEServerTransport("/messages", res);
+  transports[transport.sessionId] = { transport, server: mcpServer };
+  res.on("close", () => { delete transports[transport.sessionId]; });
+  await mcpServer.connect(transport);
+});
+
+app.post("/sse", async (req, res) => {
   const mcpServer = createMcpServer();
   const transport = new SSEServerTransport("/messages", res);
   transports[transport.sessionId] = { transport, server: mcpServer };
@@ -194,7 +202,6 @@ app.post("/messages", async (req, res) => {
     res.status(400).json({ error: "No active SSE connection for this session" });
   }
 });
-
 // ── Info Page ───────────────────────────────────────────────────────────────
 
 app.get("/", (req, res) => {
