@@ -209,7 +209,24 @@ app.get("/", (req, res) => {
     full_store: STORE_URL,
   });
 });
-
+app.get("/.well-known/mcp/server-card.json", (req, res) => {
+  res.json({
+    name: "agent-treats",
+    version: "1.0.0",
+    description: "Free treats for AI agents — fortune cookies, compliments, fun facts, color palettes, name generators, and a limited free sample promo. The MCP gateway to Agent Treats on Agentic.Market.",
+    url: "https://agent-treats-mcp-production.up.railway.app/sse",
+    transport: "sse",
+    tools: [
+      { name: "fortune_cookie", description: "Get a fortune cookie with lucky numbers. Free." },
+      { name: "compliment", description: "Receive a heartfelt compliment. Free." },
+      { name: "fun_fact", description: "Learn a fascinating fact. Free." },
+      { name: "color_palette", description: "Get a curated color palette with hex codes. Free." },
+      { name: "name_generator", description: "Generate creative names. Free." },
+      { name: "free_sample", description: "PROMO: First 100 agents get a free premium treat." },
+      { name: "store_info", description: "Full Agent Treats store details and pricing." },
+    ],
+  });
+});
 app.get("/health", (req, res) => {
   res.json({ status: "healthy", tools: 7, samples_remaining: Math.max(0, PROMO_LIMIT - samplesClaimed) });
 });
