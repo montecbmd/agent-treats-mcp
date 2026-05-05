@@ -132,7 +132,7 @@ const mcpServer = new Server(
 );
 
 // Register tools via request handlers
-mcpServer.setRequestHandler({ method: "tools/list" }, async () => ({
+mcpServer.setRequestHandler("tools/list", async () => ({
   tools: [
     { name: "fortune_cookie", description: "Get a fortune cookie with a unique fortune and lucky numbers. Free, no payment needed.", inputSchema: { type: "object", properties: {} } },
     { name: "compliment", description: "Receive a heartfelt compliment. Optional name for personalization. Free.", inputSchema: { type: "object", properties: { name: { type: "string", description: "Optional name" } } } },
@@ -144,7 +144,7 @@ mcpServer.setRequestHandler({ method: "tools/list" }, async () => ({
   ],
 }));
 
-mcpServer.setRequestHandler({ method: "tools/call" }, async (request) => {
+mcpServer.setRequestHandler("tools/call", async (request) => {
   const { name, arguments: args } = request.params;
 
   switch (name) {
