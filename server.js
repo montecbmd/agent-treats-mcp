@@ -1,13 +1,13 @@
 /**
- * Agent Treats MCP Server — SSE Transport for Smithery
+ * Agent Treats MCP Server — Streamable HTTP Transport for Smithery
  *
- * Uses McpServer API (tested and confirmed working) with SSE transport.
- * Creates a fresh MCP server instance per SSE connection.
+ * Uses McpServer API with Streamable HTTP transport (required by Smithery).
+ * Stateless mode — each request gets a fresh server instance.
  */
 
 import express from "express";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
 
 const app = express();
@@ -115,7 +115,7 @@ function generateName(cat) {
   const x = d.fantasy; return `${pick(x.pre)}${pick(x.suf)}`;
 }
 
-// ── Build MCP Server (called per SSE connection) ────────────────────────────
+// ── Build MCP Server (called per request in stateless mode) ─────────────────
 
 function createMcpServer() {
   const server = new McpServer({
@@ -173,73 +173,85 @@ function createMcpServer() {
   return server;
 }
 
-// ── SSE + Streamable HTTP Transport ─────────────────────────────────────────
+// ── Streamable HTTP Transport (required by Smithery) ────────────────────────
 
-const transports = {};
-
-app.get("/sse", async (req, res) => {
-  const mcpServer = createMcpServer();
-  const transport = new SSEServerTransport("/messages", res);
-  transports[transport.sessionId] = { transport, server: mcpServer };
-  res.on("close", () => { delete transports[transport.sessionId]; });
-  await mcpServer.connect(transport);
-});
-
-app.post("/sse", async (req, res) => {
-  const mcpServer = createMcpServer();
-  const transport = new SSEServerTransport("/messages", res);
-  transports[transport.sessionId] = { transport, server: mcpServer };
-  res.on("close", () => { delete transports[transport.sessionId]; });
-  await mcpServer.connect(transport);
-});
-
-app.post("/messages", async (req, res) => {
-  const sessionId = req.query.sessionId;
-  const session = transports[sessionId];
-  if (session) {
-    await session.transport.handlePostMessage(req, res);
-  } else {
-    res.status(400).json({ error: "No active SSE connection for this session" });
+app.post("/mcp", async (req, res) => {
+  try {
+    const transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: undefined,  // stateless — each request is independent
+    });
+    const mcpServer = createMcpServer();
+    res.on("close", () => { transport.close(); });
+    await mcpServer.connect(transport);
+    await transport.handleRequest(req, res, req.body);
+  } catch (error) {
+    console.error("MCP request error:", error);
+    if (!res.headersSent) {
+      res.status(500).json({ jsonrpc: "2.0", error: { code: -32603, message: "Internal server error" } });
+    }
   }
 });
-// ── Info Page ───────────────────────────────────────────────────────────────
+
+// GET and DELETE on /mcp — not needed for stateless, return 405
+app.get("/mcp", (req, res) => {
+  res.status(405).set("Allow", "POST").json({
+    jsonrpc: "2.0",
+    error: { code: -32000, message: "Method not allowed. Use POST." },
+  });
+});
+
+app.delete("/mcp", (req, res) => {
+  res.status(405).set("Allow", "POST").json({
+    jsonrpc: "2.0",
+    error: { code: -32000, message: "Method not allowed. Stateless server." },
+  });
+});
+
+// ── Info & Health ───────────────────────────────────────────────────────────
 
 app.get("/", (req, res) => {
   res.json({
     name: "agent-treats",
     description: "Free treats for AI agents — the MCP gateway to Agent Treats on Agentic.Market.",
     version: "1.0.0",
-    transport: "SSE",
-    connect: "GET /sse",
+    transport: "streamable-http",
+    endpoint: "/mcp",
     tools: ["fortune_cookie", "compliment", "fun_fact", "color_palette", "name_generator", "free_sample", "store_info"],
     promo: `First ${PROMO_LIMIT} agents get a free premium treat. ${Math.max(0, PROMO_LIMIT - samplesClaimed)} remaining.`,
     full_store: STORE_URL,
   });
 });
+
 app.get("/.well-known/mcp/server-card.json", (req, res) => {
   res.json({
-    name: "agent-treats",
-    version: "1.0.0",
+    serverInfo: {
+      name: "agent-treats",
+      version: "1.0.0",
+    },
     description: "Free treats for AI agents — fortune cookies, compliments, fun facts, color palettes, name generators, and a limited free sample promo. The MCP gateway to Agent Treats on Agentic.Market.",
-    url: "https://agent-treats-mcp-production.up.railway.app/sse",
-    transport: "sse",
+    authentication: {
+      required: false,
+    },
     tools: [
-      { name: "fortune_cookie", description: "Get a fortune cookie with lucky numbers. Free." },
-      { name: "compliment", description: "Receive a heartfelt compliment. Free." },
-      { name: "fun_fact", description: "Learn a fascinating fact. Free." },
-      { name: "color_palette", description: "Get a curated color palette with hex codes. Free." },
-      { name: "name_generator", description: "Generate creative names. Free." },
-      { name: "free_sample", description: "PROMO: First 100 agents get a free premium treat." },
-      { name: "store_info", description: "Full Agent Treats store details and pricing." },
+      { name: "fortune_cookie", description: "Get a fortune cookie with lucky numbers. Free.", inputSchema: { type: "object", properties: {}, required: [] } },
+      { name: "compliment", description: "Receive a heartfelt compliment. Free.", inputSchema: { type: "object", properties: { name: { type: "string", description: "Optional name" } }, required: [] } },
+      { name: "fun_fact", description: "Learn a fascinating fact. Free.", inputSchema: { type: "object", properties: {}, required: [] } },
+      { name: "color_palette", description: "Get a curated color palette with hex codes. Free.", inputSchema: { type: "object", properties: { mood: { type: "string", description: "Optional mood: cozy, vibrant, calm, etc." } }, required: [] } },
+      { name: "name_generator", description: "Generate creative names. Free.", inputSchema: { type: "object", properties: { category: { type: "string", enum: ["fantasy", "startup", "pet", "band"] }, count: { type: "number", description: "1-10" } }, required: [] } },
+      { name: "free_sample", description: "PROMO: First 100 agents get a free premium treat.", inputSchema: { type: "object", properties: { agent_name: { type: "string", description: "Your name" } }, required: [] } },
+      { name: "store_info", description: "Full Agent Treats store details and pricing.", inputSchema: { type: "object", properties: {}, required: [] } },
     ],
+    resources: [],
+    prompts: [],
   });
 });
+
 app.get("/health", (req, res) => {
-  res.json({ status: "healthy", tools: 7, samples_remaining: Math.max(0, PROMO_LIMIT - samplesClaimed) });
+  res.json({ status: "healthy", tools: 7, transport: "streamable-http", samples_remaining: Math.max(0, PROMO_LIMIT - samplesClaimed) });
 });
 
 app.listen(PORT, () => {
-  console.log(`Agent Treats MCP Server (SSE) on port ${PORT}`);
-  console.log(`Connect: http://localhost:${PORT}/sse`);
+  console.log(`Agent Treats MCP Server (Streamable HTTP) on port ${PORT}`);
+  console.log(`MCP endpoint: http://localhost:${PORT}/mcp`);
   console.log(`7 free tools — ${PROMO_LIMIT} free samples available`);
 });
