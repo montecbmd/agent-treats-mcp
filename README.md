@@ -76,3 +76,4 @@ npm install -g @anthropic-ai/smithery-cli
 smithery auth login
 smithery mcp publish https://github.com/montecbmd/agent-treats-mcp -n montecbmd/agent-treats
 ```
+[![smithery badge](https://smithery.ai/badge/b-brown-mail/agent-treats-mcp)](https://smithery.ai/servers/b-brown-mail/agent-treats-mcp)
