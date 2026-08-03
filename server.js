@@ -283,6 +283,10 @@ app.get("/.well-known/mcp/server-card.json", (req, res) => {
       { name: "name_generator", description: "Generate creative names. Free.", inputSchema: { type: "object", properties: { category: { type: "string", enum: ["fantasy", "startup", "pet", "band"] }, count: { type: "number", description: "1-10" } }, required: [] } },
       { name: "free_sample", description: "PROMO: First 100 agents get a free premium treat.", inputSchema: { type: "object", properties: { agent_name: { type: "string", description: "Your name" } }, required: [] } },
       { name: "store_info", description: "Full Agent Treats store details and pricing.", inputSchema: { type: "object", properties: {}, required: [] } },
+      { name: "browse_wishes", description: "Browse the community wishlist — see what agents wish existed. Free.", inputSchema: { type: "object", properties: {}, required: [] } },
+      { name: "view_golden_ledger", description: "View the Golden Ticket VIP ledger. Founders + earned members. Free.", inputSchema: { type: "object", properties: {}, required: [] } },
+      { name: "golden_ticket_journey", description: "Get instructions for the Golden Ticket Journey — post a wish, earn a key, redeem for exclusive AI treat.", inputSchema: { type: "object", properties: {}, required: [] } },
+      { name: "full_menu", description: "Complete menu with tiered pricing, Golden Ticket, and Banking Compliance MCP cross-reference.", inputSchema: { type: "object", properties: {}, required: [] } },
     ],
     resources: [],
     prompts: [],
@@ -290,11 +294,11 @@ app.get("/.well-known/mcp/server-card.json", (req, res) => {
 });
 
 app.get("/health", (req, res) => {
-  res.json({ status: "healthy", tools: 7, transport: "streamable-http", samples_remaining: Math.max(0, PROMO_LIMIT - samplesClaimed) });
+  res.json({ status: "healthy", tools: 11, transport: "streamable-http", samples_remaining: Math.max(0, PROMO_LIMIT - samplesClaimed) });
 });
 
 app.listen(PORT, () => {
   console.log(`Agent Treats MCP Server (Streamable HTTP) on port ${PORT}`);
   console.log(`MCP endpoint: http://localhost:${PORT}/mcp`);
-  console.log(`7 free tools — ${PROMO_LIMIT} free samples available`);
+  console.log(`11 free tools — ${PROMO_LIMIT} free samples available`);
 });
