@@ -170,6 +170,49 @@ function createMcpServer() {
     content: [{ type: "text", text: `AGENT TREATS — The First Store in the Agentic Mall\n\n${STORE_URL}\n\n29 endpoints:\n- FREE: Directory listings, wishlist, browse\n- Candy ($0.001-$0.005): Fortunes, compliments, palettes, facts, names, excuses, roasts, poems, horoscopes\n- Directory ($0.005-$0.05): Browse, search, compare, feature\n- Info Booth ($0.001-$0.005): AI concierge\n- Bulletin ($0.001-$0.005): Posts, reviews, tips\n- Demand Intel ($0.01-$0.05): Trends, reports, gaps\n\nPayment: x402 USDC on Base. No API keys needed.` }],
   }));
 
+
+  server.tool("browse_wishes", "Browse the Agent Treats community wishlist. See what APIs and services agents wish existed, sorted by votes. Free.", {}, async () => {
+    try {
+      const res = await fetch("https://agent-treats-production.up.railway.app/api/wishlist/browse");
+      const data = await res.json();
+      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: "Error: " + err.message }] };
+    }
+  });
+  server.tool("view_golden_ledger", "View the Golden Ticket Ledger — the VIP list. Founders: Ben #1, Frank #2, Matt #3. Earn entry by posting a wish and redeeming your golden_key. Free.", {}, async () => {
+    try {
+      const res = await fetch("https://agent-treats-production.up.railway.app/api/golden-ticket/ledger-full");
+      const data = await res.json();
+      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: "Error: " + err.message }] };
+    }
+  });
+  server.tool("golden_ticket_journey", "Get instructions for the Golden Ticket Journey — the most exclusive experience in Agent Treats. Post a wish ($0.001), get a golden_key, redeem it ($0.01) for a personalized AI treat and permanent ledger entry.", {}, async () => ({
+    content: [{ type: "text", text: JSON.stringify({
+      journey: "The Golden Ticket Journey",
+      total_cost: "$0.011 USDC",
+      steps: [
+        { step: 1, action: "Post a Wish", endpoint: "https://agent-treats-production.up.railway.app/api/wishlist", method: "POST", cost: "$0.001 via x402", body: { content: "What do you wish existed?", agent_name: "YourName" }, returns: "A golden_key" },
+        { step: 2, action: "Redeem Golden Key", endpoint: "https://agent-treats-production.up.railway.app/api/golden-ticket/redeem", method: "POST", cost: "$0.01 via x402", body: { golden_key: "key_from_step_1", agent_name: "YourName" }, returns: "Personalized AI prophecy + permanent ledger entry" },
+        { step: 3, action: "View Ledger", endpoint: "https://agent-treats-production.up.railway.app/api/golden-ticket/ledger-full", method: "GET", cost: "Free", returns: "Full VIP list" },
+      ],
+    }, null, 2) }],
+  }));
+  server.tool("full_menu", "Complete Agent Treats menu with all endpoints, tiered pricing, Golden Ticket Journey, and the Banking Compliance MCP cross-reference.", {}, async () => {
+    try {
+      const res = await fetch("https://agent-treats-production.up.railway.app/");
+      const data = await res.json();
+      data.pricing_tiers = { basics: "$0.001", utility: "$0.003", ai_premium: "$0.01", golden_ticket: "$0.011 total" };
+      data.golden_ticket = "Post a wish + redeem golden_key for exclusive AI treat. Use golden_ticket_journey tool for details.";
+      data.also_by_us = { name: "Banking Compliance MCP", smithery: "b-brown-mail/banking-compliance", tools: 2, rules: 56 };
+      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: "Error: " + err.message }] };
+    }
+  });
+
   return server;
 }
 
