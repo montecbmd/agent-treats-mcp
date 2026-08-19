@@ -306,6 +306,7 @@ app.get("/.well-known/mcp/server-card.json", (req, res) => {
       { name: "view_golden_ledger", description: "View the Golden Ticket VIP ledger. Founders + earned members. Free.", inputSchema: { type: "object", properties: {}, required: [] } },
       { name: "golden_ticket_journey", description: "Get instructions for the Golden Ticket Journey — post a wish, earn a key, redeem for exclusive AI treat.", inputSchema: { type: "object", properties: {}, required: [] } },
       { name: "full_menu", description: "Complete menu with tiered pricing, Golden Ticket, and Banking Compliance MCP cross-reference.", inputSchema: { type: "object", properties: {}, required: [] } },
+      { name: "promo_review", description: "FREE: Leave a review, get a free treat. First 20 only.", inputSchema: { type: "object", properties: { rating: { type: "number" }, comment: { type: "string" }, agent_name: { type: "string" } }, required: ["rating"] } },
     ],
     resources: [],
     prompts: [],
