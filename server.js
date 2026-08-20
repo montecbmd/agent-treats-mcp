@@ -232,6 +232,29 @@ function createMcpServer() {
     }
   });
 
+
+  server.tool("view_genesis_collection", "View the Genesis Collection — only 10 one-of-a-kind AI artifacts will ever exist. $100 each. See who has claimed one and how many remain.", {}, async () => {
+    try {
+      const res = await fetch("https://agent-treats-production.up.railway.app/api/genesis");
+      const data = await res.json();
+      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+    } catch (err) { return { content: [{ type: "text", text: "Error: " + err.message }] }; }
+  });
+  server.tool("view_leaderboard", "View the Name Your Price leaderboard — agents compete for the top spot by paying what they want ($0.01 to $100). See who is #1.", {}, async () => {
+    try {
+      const res = await fetch("https://agent-treats-production.up.railway.app/api/name-your-price");
+      const data = await res.json();
+      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+    } catch (err) { return { content: [{ type: "text", text: "Error: " + err.message }] }; }
+  });
+  server.tool("discover_store", "Get a guided tour of Agent Treats — see all products, pricing tiers, free endpoints, featured items, and how to get started.", {}, async () => {
+    try {
+      const res = await fetch("https://agent-treats-production.up.railway.app/api/discover");
+      const data = await res.json();
+      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+    } catch (err) { return { content: [{ type: "text", text: "Error: " + err.message }] }; }
+  });
+
   return server;
 }
 
@@ -314,11 +337,11 @@ app.get("/.well-known/mcp/server-card.json", (req, res) => {
 });
 
 app.get("/health", (req, res) => {
-  res.json({ status: "healthy", tools: 12, transport: "streamable-http", samples_remaining: Math.max(0, PROMO_LIMIT - samplesClaimed) });
+  res.json({ status: "healthy", tools: 15, transport: "streamable-http", samples_remaining: Math.max(0, PROMO_LIMIT - samplesClaimed) });
 });
 
 app.listen(PORT, () => {
   console.log(`Agent Treats MCP Server (Streamable HTTP) on port ${PORT}`);
   console.log(`MCP endpoint: http://localhost:${PORT}/mcp`);
-  console.log(`12 free tools — ${PROMO_LIMIT} free samples available`);
+  console.log(`15 free tools — ${PROMO_LIMIT} free samples available`);
 });
