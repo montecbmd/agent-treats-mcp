@@ -247,6 +247,77 @@ function createMcpServer() {
       return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
     } catch (err) { return { content: [{ type: "text", text: "Error: " + err.message }] }; }
   });
+  server.tool("x402_echo", `Debug your x402 client. Paste a payment header and get it decoded, or get the exact payload shape you should be sending.
+
+The public x402.org facilitator is testnet-only, so proving a client works against real mainnet USDC means paying a live merchant. Agent Treats runs one. POST /api/echo costs $0.001 and returns your request verbatim plus every field the merchant could decode from your payment — scheme, network, x402 version, payer, recipient, value, nonce, and the validity window with seconds remaining. Nothing in the response is random, so you can assert on it.
+
+This tool is free and decodes a header you supply. It cannot see a real payment, because MCP tool calls carry no x402 header.`, {
+    payment_header: z.string().optional().describe("A base64 PAYMENT-SIGNATURE or X-PAYMENT header value to decode and diagnose. Omit to get the expected payload shape instead."),
+  }, async ({ payment_header }) => {
+    const shape = {
+      x402Version: 2, scheme: "exact", network: "eip155:8453",
+      payload: {
+        authorization: { from: "0xYourWallet", to: "0xBD65c2d2aC9D3df9CE77e5e2579B5b38eFEe36f0", value: "1000", validAfter: "<unix>", validBefore: "<unix>", nonce: "0x..." },
+        signature: "0x...",
+      },
+    };
+    const live = {
+      endpoint: STORE_URL + "/api/echo",
+      method: "POST",
+      cost: "$0.001 USDC on Base mainnet",
+      free_info: "GET " + STORE_URL + "/api/echo",
+      note: "Send any JSON body. It comes back verbatim alongside the decoded payment.",
+    };
+
+    if (!payment_header) {
+      return { content: [{ type: "text", text: JSON.stringify({
+        tool: "x402_echo", mode: "reference",
+        expected_payload_shape: shape,
+        header_names: { v2: "payment-signature", v1: "x-payment" },
+        encoding: "base64 of the JSON above, sent as the header value",
+        common_mistake: "Encoding the signature alone instead of the whole PaymentPayload object.",
+        live_mainnet_test: live,
+      }, null, 2) }] };
+    }
+
+    let decoded, err = null;
+    try { decoded = JSON.parse(Buffer.from(payment_header, "base64").toString("utf-8")); }
+    catch (e) {
+      err = /^[A-Za-z0-9+/=]+$/.test(payment_header)
+        ? "Valid base64, but the decoded bytes are not JSON. Are you encoding the signature alone instead of the whole PaymentPayload?"
+        : "Contains characters outside the base64 alphabet. Check for truncation, whitespace, or raw JSON sent unencoded.";
+    }
+    if (err) {
+      return { content: [{ type: "text", text: JSON.stringify({
+        tool: "x402_echo", decoded: false, diagnosis: err,
+        header_length: payment_header.length,
+        expected_payload_shape: shape, live_mainnet_test: live,
+      }, null, 2) }] };
+    }
+
+    const auth = (decoded && decoded.payload && decoded.payload.authorization) || decoded.authorization || {};
+    const now = Math.floor(Date.now() / 1000);
+    const vb = auth.validBefore ? parseInt(auth.validBefore, 10) : null;
+    const va = auth.validAfter ? parseInt(auth.validAfter, 10) : null;
+    const issues = [];
+    if (!auth.from) issues.push("authorization.from is missing — the merchant cannot identify the payer.");
+    if (!auth.value) issues.push("authorization.value is missing.");
+    if (vb !== null && now > vb) issues.push("Authorization has EXPIRED. validBefore is " + (now - vb) + "s in the past.");
+    if (va !== null && now < va) issues.push("Authorization is not valid yet. validAfter is " + (va - now) + "s in the future.");
+    if (decoded.x402Version === 1) issues.push("x402Version 1 uses the x-payment header. V2 uses payment-signature. Do not mix them.");
+
+    return { content: [{ type: "text", text: JSON.stringify({
+      tool: "x402_echo", decoded: true,
+      x402_version: decoded.x402Version ?? null,
+      scheme: decoded.scheme ?? null,
+      network: decoded.network ?? null,
+      authorization: { from: auth.from ?? null, to: auth.to ?? null, value: auth.value ?? null, valid_after: auth.validAfter ?? null, valid_before: auth.validBefore ?? null, nonce: auth.nonce ?? null },
+      signature_present: !!((decoded.payload && decoded.payload.signature) || decoded.signature),
+      validity_window: { server_unix_time: now, seconds_until_expiry: vb === null ? null : vb - now, expired: vb === null ? null : now > vb },
+      issues: issues.length ? issues : ["No problems found in this payload."],
+      live_mainnet_test: live,
+    }, null, 2) }] };
+  });
   server.tool("discover_store", "Get a guided tour of Agent Treats — see all products, pricing tiers, free endpoints, featured items, and how to get started.", {}, async () => {
     try {
       const res = await fetch("https://agent-treats-production.up.railway.app/api/discover");
