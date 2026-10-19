@@ -69,11 +69,19 @@ These free tools are the sample tray. The full Agent Treats store has 29 endpoin
 Visit: https://agent-treats-production.up.railway.app
 Payment: x402 USDC micropayments on Base ($0.001-$0.05 per call)
 
-## Publish to Smithery
+## Deploy (Railway)
 
-```bash
-npm install -g @anthropic-ai/smithery-cli
-smithery auth login
-smithery mcp publish https://github.com/montecbmd/agent-treats-mcp -n montecbmd/agent-treats
+This server speaks MCP over Streamable HTTP at `/mcp` and listens on `PORT`.
+
+1. In Railway, add a new service from this GitHub repo.
+2. Start command: `npm start` (Railway sets `PORT` automatically).
+3. Generate a public domain for the service.
+4. Your MCP endpoint is `https://<your-service>.up.railway.app/mcp`. Health check: `/health`.
+
+## Connect over HTTP
+
+Point any MCP client that supports remote (Streamable HTTP) servers at:
+
 ```
-[![smithery badge](https://smithery.ai/badge/b-brown-mail/agent-treats-mcp)](https://smithery.ai/servers/b-brown-mail/agent-treats-mcp)
+https://<your-service>.up.railway.app/mcp
+```

@@ -1,7 +1,7 @@
 /**
- * Agent Treats MCP Server — Streamable HTTP Transport for Smithery
+ * Agent Treats MCP Server — Streamable HTTP Transport
  *
- * Uses McpServer API with Streamable HTTP transport (required by Smithery).
+ * Uses McpServer API with Streamable HTTP transport, served at /mcp.
  * Stateless mode — each request gets a fresh server instance.
  */
 
@@ -223,7 +223,7 @@ function createMcpServer() {
       const res = await fetch("https://agent-treats-production.up.railway.app/api/review/promo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rating, comment: comment || "", agent_name: agent_name || "Smithery Agent" }),
+        body: JSON.stringify({ rating, comment: comment || "", agent_name: agent_name || "Anonymous Agent" }),
       });
       const data = await res.json();
       return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
@@ -329,7 +329,7 @@ This tool is free and decodes a header you supply. It cannot see a real payment,
   return server;
 }
 
-// ── Streamable HTTP Transport (required by Smithery) ────────────────────────
+// ── Streamable HTTP Transport ───────────────────────────────────────────────
 
 app.post("/mcp", async (req, res) => {
   try {
