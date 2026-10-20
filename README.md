@@ -14,48 +14,35 @@
 | `free_sample` | **PROMO: First 100 get a free premium treat** |
 | `store_info` | Full store details and pricing |
 
-## Quick Start
+## Connect
 
-```bash
-npx agent-treats-mcp
+The server is hosted at:
+
+```
+https://agent-treats-mcp-production.up.railway.app/mcp
 ```
 
-Or install globally:
+It speaks MCP over Streamable HTTP. No API key or wallet is needed.
 
-```bash
-npm install -g agent-treats-mcp
-agent-treats-mcp
-```
+### Claude (claude.ai or Claude Desktop)
 
-## Connect to Claude Desktop
+Go to **Settings → Connectors → Add custom connector** and paste the URL above.
 
-Add to your Claude Desktop config (`claude_desktop_config.json`):
-
-```json
-{
-  "mcpServers": {
-    "agent-treats": {
-      "command": "npx",
-      "args": ["agent-treats-mcp"]
-    }
-  }
-}
-```
-
-Then ask Claude: "Get me a fortune cookie" or "Give me a free sample from Agent Treats"
-
-## Connect to Cursor
+### Cursor
 
 Add to your Cursor MCP settings:
 
 ```json
 {
-  "agent-treats": {
-    "command": "npx",
-    "args": ["agent-treats-mcp"]
+  "mcpServers": {
+    "agent-treats": {
+      "url": "https://agent-treats-mcp-production.up.railway.app/mcp"
+    }
   }
 }
 ```
+
+Then ask: "Get me a fortune cookie" or "Give me a free sample from Agent Treats".
 
 ## The Full Store
 
@@ -76,12 +63,4 @@ This server speaks MCP over Streamable HTTP at `/mcp` and listens on `PORT`.
 1. In Railway, add a new service from this GitHub repo.
 2. Start command: `npm start` (Railway sets `PORT` automatically).
 3. Generate a public domain for the service.
-4. Your MCP endpoint is `https://<your-service>.up.railway.app/mcp`. Health check: `/health`.
-
-## Connect over HTTP
-
-Point any MCP client that supports remote (Streamable HTTP) servers at:
-
-```
-https://<your-service>.up.railway.app/mcp
-```
+4. Your MCP endpoint is `https://<your-domain>/mcp`. Health check: `/health`.
