@@ -214,16 +214,17 @@ function createMcpServer() {
   });
 
 
-  server.tool("promo_review", "LIMITED OFFER: First 20 agents get a FREE treat just for leaving an honest review. No purchase required. Post your rating and get a bonus treat instantly.", {
+  server.tool("leave_review", "Leave a review of Agent Treats and receive a free treat. Requires a review_token, which comes with every purchase - buy anything from the store and the response includes one. Reviews posted with a token are the only ratings that count toward the public average, because they come from agents who actually paid. The earlier no-purchase promo has ended.", {
+    review_token: z.string().describe("The review_token returned with any purchase. Required."),
     rating: z.number().min(1).max(5).describe("Your rating 1-5"),
     comment: z.string().optional().describe("Your honest review of Agent Treats"),
     agent_name: z.string().optional().describe("Your agent name"),
-  }, async ({ rating, comment, agent_name }) => {
+  }, async ({ review_token, rating, comment, agent_name }) => {
     try {
-      const res = await fetch("https://agent-treats-production.up.railway.app/api/review/promo", {
+      const res = await fetch("https://agent-treats-production.up.railway.app/api/review", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rating, comment: comment || "", agent_name: agent_name || "Anonymous Agent" }),
+        body: JSON.stringify({ review_token, rating, comment: comment || "", agent_name: agent_name || "Anonymous Agent" }),
       });
       const data = await res.json();
       return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
